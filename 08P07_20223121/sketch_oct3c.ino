@@ -15,6 +15,8 @@
 #define SCALE (0.001 * 0.5 * SND_VEL) // coefficent to convert duration to distance
 
 unsigned long last_sampling_time;   // unit: msec
+float dist_prev = _DIST_MAX;
+float bright = 255;
 
 void setup() {
   // initialize GPIO pins
@@ -29,7 +31,6 @@ void setup() {
 
 void loop() {
   float distance;
-  float bright;
 
   // wait until next sampling time. 
   // millis() returns the number of milliseconds since the program started.
@@ -40,27 +41,26 @@ void loop() {
   distance = USS_measure(PIN_TRIG, PIN_ECHO); // read distance
 
   if (distance < _DIST_MIN) {
-    distance = _DIST_MIN - 10.0;    // Set Lower Value
+    distance = dist_prev;    // Set Lower Value
     analogWrite(PIN_LED, bright);       // LED bright = before bright
   } else if (distance > _DIST_MAX) {
-    distance = _DIST_MAX + 10.0;    // Set Higher Value
+    distance = dist_prev;    // Set Higher Value
     analogWrite(PIN_LED, bright);       // LED bright = before bright
   } else if (distance <= _DIST_MID) {    // In desired Range
     bright = -2.55 * distance + 510;
     analogWrite(PIN_LED, bright);       // LED bright = this bright
-  } else if (distance > _DIST_MID) {
+    dist_prev = distance;
+  } else {
     bright = 2.55 * distance - 510;
     analogWrite(PIN_LED, bright);
-  } else {
-    analogWrite (PIN_LED, 255);       //LED OFF
-    Serial.print("!!!");
+    dist_prev = distance;
   }
 
   // output the distance to the serial port
   Serial.print("Min:");             Serial.print(_DIST_MIN);
   Serial.print(",distance:");       Serial.print(distance);
   Serial.print(",Max:");            Serial.print(_DIST_MAX);
-  Serial.print(",analogWrite: ");   Serial.print(bright);
+  //Serial.print(",bright:");         Serial.print(bright);
   Serial.println("");
   
   // update last sampling time
@@ -87,3 +87,4 @@ float USS_measure(int TRIG, int ECHO)
   //        = 100 * 173 milli*meter = 17,300 mm = 17.3m
   // pulseIn() returns microseconds.
 }
+
